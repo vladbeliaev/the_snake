@@ -42,6 +42,7 @@ pygame.display.set_caption('Змейка')
 clock = pygame.time.Clock()
 
 
+# Функция обработки действий пользователя
 def handle_keys(game_object) -> None:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -61,16 +62,34 @@ def handle_keys(game_object) -> None:
 # Тут опишите все классы игры.
 class GameObject:
 
-    def __init__(self) -> None:
-        self.position = (0, 0)
-        self.body_color = DEFAULT_COLOR
+    def __init__(self, position=(0, 0), body_color=DEFAULT_COLOR) -> None:
+        self.position = position
+        self.body_color = body_color
 
     def draw(self) -> None:
         pass
 
 
 class Snake(GameObject):
-    pass
+
+    def __inti__(self) -> None:
+        super().__init__()
+        self.lenght = 1
+        self.position = self.start_position()
+        self.direction = RIGHT
+        self.next_direction = None
+        self.body_clor = SNAKE_COLOR
+
+    def start_position(self) -> tuple[int, int]:
+        return (
+            GRID_WIDTH // 2 * GRID_SIZE,
+            GRID_HEIGHT // 2 * GRID_SIZE,
+        )
+
+    def update_direction(self):
+        if self.next_direction:
+            self.direction = self.next_direction
+            self.next_direction = None
 
 
 class Apple(GameObject):
@@ -102,8 +121,6 @@ def main():
     while True:
         clock.tick(SPEED)
 
-        # Тут опишите основную логику игры.
-        # ...
         handle_keys(snake)
 
         pygame.display.update()
@@ -132,11 +149,5 @@ if __name__ == '__main__':
 #         last_rect = pygame.Rect(self.last, (GRID_SIZE, GRID_SIZE))
 #         pygame.draw.rect(screen, BOARD_BACKGROUND_COLOR, last_rect)
 
-# Функция обработки действий пользователя
-
 
 # Метод обновления направления после нажатия на кнопку
-# def update_direction(self):
-#     if self.next_direction:
-#         self.direction = self.next_direction
-#         self.next_direction = None
