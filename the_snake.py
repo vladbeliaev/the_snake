@@ -72,6 +72,17 @@ class GameObject:
         """
         pass
 
+    def draw_cell_background_color(self, position):
+        """Метод закраски ячейки в цвет фона."""
+        rect = pg.Rect(position, (GRID_SIZE, GRID_SIZE))
+        pg.draw.rect(screen, BOARD_BACKGROUND_COLOR, rect)
+
+    def draw_cell(self, position):
+        """Метод отрисовки ячейки базового объекта на поле."""
+        rect = pg.Rect(position, (GRID_SIZE, GRID_SIZE))
+        pg.draw.rect(screen, self.body_color, rect)
+        pg.draw.rect(screen, BORDER_COLOR, rect, 1)
+
 
 class Snake(GameObject):
     """Клаcc описсывающий змейку на игровом поле."""
@@ -112,45 +123,29 @@ class Snake(GameObject):
     def move(self) -> None:
         """Логика движении змейки на игровом поле."""
         head_position = self.get_head_position()
-        new_head_position_x = head_position[0] + self.direction[0] * GRID_SIZE
-        new_head_position_y = head_position[1] + self.direction[1] * GRID_SIZE
-
-        if new_head_position_x >= SCREEN_WIDTH:
-            new_head_position_x -= SCREEN_WIDTH
-        elif new_head_position_x < 0:
-            new_head_position_x += SCREEN_WIDTH
-        elif new_head_position_y >= SCREEN_HEIGHT:
-            new_head_position_y -= SCREEN_HEIGHT
-        elif new_head_position_y < 0:
-            new_head_position_y += SCREEN_HEIGHT
         new_head_position = (
-            new_head_position_x,
-            new_head_position_y,
+            (head_position[0] + self.direction[0] * GRID_SIZE) % SCREEN_WIDTH,
+            (head_position[1] + self.direction[1] * GRID_SIZE) % SCREEN_HEIGHT,
         )
         self.positions.insert(0, new_head_position)
 
     def loose_draw(self) -> None:
         """Отрисовка змейки в цвет фона при проигрыше."""
+        self.positions.insert(-1, self.last)
         for position in self.positions:
-            current_rect = pg.Rect(position, (GRID_SIZE, GRID_SIZE))
-            pg.draw.rect(screen, BOARD_BACKGROUND_COLOR, current_rect)
+            self.draw_cell_background_color(position)
 
     def draw(self) -> None:
         """Отрисовка змейки на игровом поле"""
         for position in self.positions[:-1]:
-            rect = (pg.Rect(position, (GRID_SIZE, GRID_SIZE)))
-            pg.draw.rect(screen, self.body_color, rect)
-            pg.draw.rect(screen, BORDER_COLOR, rect, 1)
+            self.draw_cell(position)
 
         # Отрисовка головы змейки
-        head_rect = pg.Rect(self.positions[0], (GRID_SIZE, GRID_SIZE))
-        pg.draw.rect(screen, self.body_color, head_rect)
-        pg.draw.rect(screen, BORDER_COLOR, head_rect, 1)
+        self.draw_cell(self.get_head_position())
 
         # Затирание последнего сегмента
         if self.last:
-            last_rect = pg.Rect(self.last, (GRID_SIZE, GRID_SIZE))
-            pg.draw.rect(screen, BOARD_BACKGROUND_COLOR, last_rect)
+            self.draw_cell_background_color(self.last)
 
 
 class Apple(GameObject):
@@ -158,26 +153,24 @@ class Apple(GameObject):
 
     def __init__(self) -> None:
         super().__init__()
-        self.position = self.randomize_position()
         self.body_color = APPLE_COLOR
 
-    def randomize_position(self) -> tuple[int, int]:
+    def randomize_position(self, prohibited_positions):
         """Возвращает рандомную координату положения яблока."""
-        return (
-            randint(0, GRID_WIDTH) * GRID_SIZE,
-            randint(0, GRID_HEIGHT) * GRID_SIZE,
-        )
+        while self.position in prohibited_positions:
+            self.position = (
+                randint(0, GRID_WIDTH - 1) * GRID_SIZE,
+                randint(0, GRID_HEIGHT - 1) * GRID_SIZE,
+            )
 
     def draw(self) -> None:
         """Отрисовка яблока на игровом поле."""
-        rect = pg.Rect(self.position, (GRID_SIZE, GRID_SIZE))
-        pg.draw.rect(screen, self.body_color, rect)
-        pg.draw.rect(screen, BORDER_COLOR, rect, 1)
+        self.draw_cell(self.position)
 
 
 def main() -> None:
     """Основная логика игры."""
-    # Инициализация pg:
+    # Инициализация pygame:
     pg.init()
     apple = Apple()
     snake = Snake()
@@ -187,10 +180,9 @@ def main() -> None:
         handle_keys(snake)
         snake.update_direction()
         snake.move()
-        if snake.positions[0] == apple.position:
+        if snake.get_head_position() == apple.position:
             snake.lenght += 1
-            while apple.position in snake.positions:
-                apple.position = apple.randomize_position()
+            apple.randomize_position(snake.positions)
         else:
             snake.last = snake.positions.pop()
         if snake.get_head_position() in snake.positions[1:]:
